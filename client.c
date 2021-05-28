@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdarg.h>
@@ -6,16 +7,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 struct Hostname* parse_hostname(struct Hostname* host);
-struct File* open_file(struct File *file);
+struct File* open_and_map_file(struct File *file);
 void client_send_file(struct Hostname host, char *filename);
 
-#define ERR_MSG(...)                        \ 
+#define ERR_MSG(...)                        \
     do {                                    \
         fprintf(stderr, __VA_ARGS__);       \
         exit(-1);                           \
@@ -91,27 +94,52 @@ struct Hostname* parse_hostname(struct Hostname* host)
 }
 
 /* 
+ * function opens the file and maps it into memory,
+ * the file is mapped into memory to avoid the overhead of using system calls.
+ */
+struct File* open_and_map_file(struct File* file) 
+{
+    int fd;
+    if ((fd = open(file->name, O_RDONLY)) == -1) 
+        ERR_MSG("error (client): can not open %s\ni%s\n", 
+                    file->name, 
+                    strerror(errno));
+
+    struct stat file_stat;
+    if(fstat(fd, &file_stat) == -1)
+        ERR_MSG("error (client): error accessing stat of file %s\n %s\n", 
+                                                    file->name,
+                                                    strerror(errno));
+
+    file->len = file_stat.st_size;
+    if ((file->bytes = mmap(NULL, file_stat.st_size, PROT_READ, 
+                        MAP_PRIVATE, fd, 0)) == (void*)-1)
+        ERR_MSG("error (client): can not map %s into memory\n\t%s\n", 
+                    file->name, 
+                    strerror(errno));
+
+    return file;
+}
+
+/* 
  * opens the file provided by filename and reads it into struct File
  * kills the client if an error is encountered 
  */
 void client_send_file(struct Hostname host, char *filename) 
 {
-    fprintf(stderr, "client_send_file: %s\n", filename);
-    int fd;
-    if((fd = open(filename, O_RDONLY)) == -1)
-        ERR_MSG("client send file error: could not open file");
-
-    /* read the file into memory */
     struct File file;
     file.name = filename;
+    open_and_map_file(&file);
     
+
+    for (int i = 0; i < file.len; i++) {
+        fprintf(stderr, "%c", file.bytes[i]);
+    }
 
 }
 
-
 int main(int argc, char** argv)
 {
-
     /* flags because sending and receiving is mutally exclusive */
     bool is_sending = false;
     bool is_request = false;
