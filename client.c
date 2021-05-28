@@ -51,25 +51,28 @@ int main(int argc, char** argv)
         {"receive",     required_argument, NULL, 'R'},
     };
 
-    bool is_sending;
-    bool is_receiving;
+    bool is_sending = false;
+    bool is_receiving = false;
     char* hostname;
+    char* filename = NULL;
+
 
     int opt;
     while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch (opt) {
         case 'H':
             hostname = optarg;
-            fprintf(stdout, "hostname: %s\n", hostname);
             break;
         case 'S':
             is_sending = true;
+            filename = optarg;
             if (is_receiving == true) 
                 error_and_die("error: can not send and receive\n");
 
             break;
         case 'R':
             is_receiving = true;
+            filename = optarg;
             if (is_sending == true) 
                 error_and_die("error: can not send and receive\n");
 
@@ -78,6 +81,15 @@ int main(int argc, char** argv)
             error_and_die("invalid argument detected");
         }
     }
+
+    if (is_receiving | is_sending == 0) { 
+        error_and_die("error: specify file you are sending/receiving\n");
+    } else if (hostname == NULL) {
+        error_and_die("error: specify the hostname, you are sending/receving the file\n");
+    }
+
+    fprintf(stdout, "filename: %s\n", filename);
+
 
     // /* encrypt contents of the file */
 
