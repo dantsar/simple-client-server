@@ -11,7 +11,7 @@
 #include <argp.h>
 
 struct Hostname{
-    char *hostname;
+    char *sock_addr;
     char *address;
     int port;
 };
@@ -49,7 +49,7 @@ void error_and_die(const char* err_msg)
 /* 
  * rudimentary function to parse the hostname into the address and port pair
  * e.x. localhost:8080 --> (localhost, 8080)
- * this function does not get the validity of the address, but rather just 
+ * this function does not check correctness of the address, but rather just 
  * cuts the hostname when it encounteres a ':'
  */
 struct Hostname* parse_hostname(struct Hostname* host)
@@ -59,10 +59,10 @@ struct Hostname* parse_hostname(struct Hostname* host)
         error_and_die("error: malloc was not able ot allocate data");
 
     bool port_encountered = false;
-    char *c = host->hostname;
+    char *c = host->sock_addr;
     for (int i = 0; *c != '\0' || i > addr_size; i++, c++) {
         if (isalnum(*c) || *c == '.') { 
-            host->hostname[i] = *c;
+            host->address[i] = *c;
             continue;
         }
 
@@ -70,10 +70,16 @@ struct Hostname* parse_hostname(struct Hostname* host)
         if(*c == ':') {
             port_encountered = true;
             host->port = atoi(c+1);
+            break;
         }
     }
     if (port_encountered == false) { 
         error_and_die("error: please include the port in the hostname");
+    }
+
+    if (!strncmp(host->address, "localhost", 10)) {
+        free(host->address);
+        host->address = "127.0.0.1";
     }
 
     return host;
@@ -119,7 +125,7 @@ int main(int argc, char** argv)
         switch (opt) {
         case 'h':
         case 'H':
-            host.hostname = optarg;
+            host.sock_addr = optarg;
             break;
 
         case 's':
@@ -146,21 +152,23 @@ int main(int argc, char** argv)
 
     if ((is_request | is_sending) == 0) { 
         error_and_die("error: specify file you are sending/receiving\n");
-    } else if (host.hostname == NULL) {
+    } else if (host.sock_addr == NULL) {
         error_and_die("error: specify the hostname, you are sending/receving the file\n");
     }
 
 
     parse_hostname(&host);
-    fprintf(stdout, "parsed host: %s %s ':' %d\n", host.hostname, 
-                                                   host.address,
-                                                   host.port);
+    fprintf(stdout, "parsed host:\n %s\n %s ':' %d\n", host.sock_addr, 
+                                                       host.address,
+                                                       host.port);
+
+    exit(-1);
 
     if (is_sending) {
         client_send_file(host, filename);
+    } else if (is_request) {
+        // client_request_file(host, filename);
     }
-
-
 
     // /* encrypt contents of the file */
 
