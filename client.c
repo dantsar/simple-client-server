@@ -9,8 +9,9 @@
 #include <argp.h>
 
 struct Hostname{
-    char* address;
-    // char*( )
+    char *hostname;
+    char *address;
+    int port;
 };
 
 struct File{
@@ -39,8 +40,41 @@ struct File{
 /* TODO: make this variadic, to make my life easier */
 void error_and_die(const char* err_msg)
 {
-    fprintf(stderr, "%s", err_msg);
+    fprintf(stderr, "%s\n", err_msg);
     exit(-1);
+}
+
+/* 
+ * rudimentary function to parse the hostname into the address and port pair
+ * e.x. localhost:8080 --> (localhost, 8080)
+ * this function does not get the validity of the address, but rather just 
+ * cuts the hostname when it encounteres a ':'
+ */
+struct Hostname* parse_hostname(struct Hostname* host)
+{
+    size_t addr_size = 32; /* reasonable number */
+    if ( (host->address = calloc(addr_size, sizeof(char))) == NULL)
+        error_and_die("error: malloc was not able ot allocate data");
+
+    bool port_encountered = false;
+    char *c = host->hostname;
+    for (int i = 0; *c != '\0' || i > addr_size; i++, c++) {
+        if (isalnum(*c) || *c == '.') { 
+            host->hostname[i] = *c;
+            continue;
+        }
+
+        /* assumes that everything after the ':' is a digit */
+        if(*c == ':') {
+            port_encountered = true;
+            host->port = atoi(c+1);
+        }
+    }
+    if (port_encountered == false) { 
+        error_and_die("error: please include the port in the hostname");
+    }
+
+    return host;
 }
 
 int main(int argc, char** argv)
@@ -48,30 +82,30 @@ int main(int argc, char** argv)
     static struct option long_options[] = {
         {"hostname",    required_argument, NULL, 'H'},
         {"send",        required_argument, NULL, 'S'},
-        {"receive",     required_argument, NULL, 'R'},
+        {"request",     required_argument, NULL, 'R'},
     };
 
     bool is_sending = false;
-    bool is_receiving = false;
-    char* hostname;
-    char* filename = NULL;
+    bool is_request = false;
+    struct Hostname host;
+    char *filename = NULL;
 
 
     int opt;
     while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch (opt) {
         case 'H':
-            hostname = optarg;
+            host.hostname = optarg;
             break;
         case 'S':
             is_sending = true;
             filename = optarg;
-            if (is_receiving == true) 
+            if (is_request == true) 
                 error_and_die("error: can not send and receive\n");
 
             break;
         case 'R':
-            is_receiving = true;
+            is_request = true;
             filename = optarg;
             if (is_sending == true) 
                 error_and_die("error: can not send and receive\n");
@@ -82,13 +116,20 @@ int main(int argc, char** argv)
         }
     }
 
-    if (is_receiving | is_sending == 0) { 
+    if ((is_request | is_sending) == 0) { 
         error_and_die("error: specify file you are sending/receiving\n");
-    } else if (hostname == NULL) {
+    } else if (host.hostname == NULL) {
         error_and_die("error: specify the hostname, you are sending/receving the file\n");
     }
 
-    fprintf(stdout, "filename: %s\n", filename);
+
+    parse_hostname(&host);
+
+    // fprintf(stdout, "parsed host: %s %s ':' %d\n", host.hostname, 
+    //                                                host.address,
+    //                                                host.port);
+
+
 
 
     // /* encrypt contents of the file */
