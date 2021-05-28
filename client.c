@@ -1,7 +1,9 @@
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -77,26 +79,50 @@ struct Hostname* parse_hostname(struct Hostname* host)
     return host;
 }
 
+/* 
+ * opens the file provided by filename and reads it into struct File
+ * kills the client if an error is encountered 
+ */
+void client_send_file(struct Hostname host, char *filename) 
+{
+    fprintf(stderr, "client_send_file: %s\n", filename);
+    int fd;
+    if((fd = open(filename, O_RDONLY)) == -1)
+        error_and_die("client send file error: could not open file");
+
+    /* read the file into memory */
+    /* ... */
+}
+
+
 int main(int argc, char** argv)
 {
+
+    /* flags because sending and receiving is mutally exclusive */
+    bool is_sending = false;
+    bool is_request = false;
+
+    char *filename = NULL;
+    struct Hostname host;
+
+
     static struct option long_options[] = {
         {"hostname",    required_argument, NULL, 'H'},
         {"send",        required_argument, NULL, 'S'},
         {"request",     required_argument, NULL, 'R'},
     };
 
-    bool is_sending = false;
-    bool is_request = false;
-    struct Hostname host;
-    char *filename = NULL;
-
-
+    /* allow long and short arguments */
+    int opt_ind = 0;
     int opt;
-    while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "h:s:r:", long_options, &opt_ind)) != -1) {
         switch (opt) {
+        case 'h':
         case 'H':
             host.hostname = optarg;
             break;
+
+        case 's':
         case 'S':
             is_sending = true;
             filename = optarg;
@@ -104,6 +130,8 @@ int main(int argc, char** argv)
                 error_and_die("error: can not send and receive\n");
 
             break;
+
+        case 'r':
         case 'R':
             is_request = true;
             filename = optarg;
@@ -124,11 +152,13 @@ int main(int argc, char** argv)
 
 
     parse_hostname(&host);
+    fprintf(stdout, "parsed host: %s %s ':' %d\n", host.hostname, 
+                                                   host.address,
+                                                   host.port);
 
-    // fprintf(stdout, "parsed host: %s %s ':' %d\n", host.hostname, 
-    //                                                host.address,
-    //                                                host.port);
-
+    if (is_sending) {
+        client_send_file(host, filename);
+    }
 
 
 
