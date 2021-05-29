@@ -17,13 +17,15 @@
 struct Hostname* parse_hostname(struct Hostname* host);
 struct File* open_and_map_file(struct File *file);
 void client_send_file(struct Hostname host, char *filename);
+char* encrypt_msg(char msg[], int len);
+char* decrypt_msg(char msg[], int len);
+
 
 #define ERR_MSG(...)                        \
     do {                                    \
         fprintf(stderr, __VA_ARGS__);       \
         exit(-1);                           \
     } while (0); 
-
 
 struct Hostname{
     char *sock_addr;
@@ -37,22 +39,32 @@ struct File{
     char* bytes;
 };
 
-// /* 
-//  *  THIS IS NOT A VALID ENCRYPTION SCHEME, 
-//  *  NEVER NEVER EVER EVER EVER DO THIS, 
-//  *  THIS IS BADD!!!!
-//  */
-// char secret_key = 'a';
+/* 
+ *  THIS IS NOT A VALID ENCRYPTION SCHEME!!!
+ *  NEVER NEVER EVER EVER EVER DO THIS!!!
+ *  THIS IS BADD!!!!
+ */
+char secret_key = 'a';
 
-// char* encrypt_msg(int len, char* msg)
-// {
-//     return msg;
-// }
+char* encrypt_msg(char msg[], int len)
+{
+    char temp;
+    for (int i = 0; i < len; i++) {
+        temp = msg[i] ^ secret_key;
+        msg[i] = temp;
+    }
+    return msg;
+}
 
-// char* decrypt_msg(int len, char* msg)
-// {
-//     return msg;
-// }
+char* decrypt_msg(char msg[], int len)
+{
+    char temp;
+    for (int i = 0; i < len; i++) {
+        temp = msg[i] ^ secret_key;
+        msg[i] = temp;
+    }
+    return msg;
+}
 
 /* 
  * rudimentary function to parse the hostname into the address and port pair
@@ -81,6 +93,7 @@ struct Hostname* parse_hostname(struct Hostname* host)
             break;
         }
     }
+
     if (port_encountered == false) { 
         ERR_MSG("error: please include the port in the hostname");
     }
@@ -100,7 +113,7 @@ struct Hostname* parse_hostname(struct Hostname* host)
 struct File* open_and_map_file(struct File* file) 
 {
     int fd;
-    if ((fd = open(file->name, O_RDONLY)) == -1) 
+    if ((fd = open(file->name, O_RDWR)) == -1) 
         ERR_MSG("error (client): can not open %s\ni%s\n", 
                     file->name, 
                     strerror(errno));
@@ -112,8 +125,8 @@ struct File* open_and_map_file(struct File* file)
                                                     strerror(errno));
 
     file->len = file_stat.st_size;
-    if ((file->bytes = mmap(NULL, file_stat.st_size, PROT_READ, 
-                        MAP_PRIVATE, fd, 0)) == (void*)-1)
+    if ((file->bytes = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, 
+                              MAP_PRIVATE, fd, 0)) == (void*)-1)
         ERR_MSG("error (client): can not map %s into memory\n\t%s\n", 
                     file->name, 
                     strerror(errno));
@@ -130,10 +143,13 @@ void client_send_file(struct Hostname host, char *filename)
     struct File file;
     file.name = filename;
     open_and_map_file(&file);
-    
+
+    encrypt_msg(file.bytes, file.len);
+
+    /* serialize the encrypted file */
 
     for (int i = 0; i < file.len; i++) {
-        fprintf(stderr, "%c", file.bytes[i]);
+        fprintf(stderr, "%d ", file.bytes[i]);
     }
 
 }
@@ -191,7 +207,6 @@ int main(int argc, char** argv)
         ERR_MSG("error: specify the hostname, you are sending/receving the file\n");
     }
 
-
     parse_hostname(&host);
     // fprintf(stdout, "parsed host:\n %s\n %s ':' %d\n", host.sock_addr, 
     //                                                    host.address,
@@ -202,8 +217,6 @@ int main(int argc, char** argv)
     } else if (is_request) {
         // client_request_file(host, filename);
     }
-
-    // /* encrypt contents of the file */
 
     return 1;
 }
