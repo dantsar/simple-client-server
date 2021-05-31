@@ -17,11 +17,10 @@
 #include <client.h>
 
 /**
- *  THIS IS NOT A VALID ENCRYPTION SCHEME!!!
- *  NEVER NEVER EVER EVER EVER DO THIS!!!
- *  THIS IS BADD!!!!
+ * THIS IS NOT A VALID ENCRYPTION SCHEME! NEVER NEVER EVER EVER EVER DO THIS!!!
+ * THIS IS BAD ON SO MANY LEVELS!!!!!!!!!!!!!!!!!!!!
  */
-char secret_key = 'a';
+static char secret_key = 'a';
 
 char* encrypt_msg(char msg[], int len)
 {
@@ -35,21 +34,10 @@ char* encrypt_msg(char msg[], int len)
 
 char* decrypt_msg(char msg[], int len)
 {
-    char temp;
-    for (int i = 0; i < len; i++) {
-        temp = msg[i] ^ secret_key;
-        msg[i] = temp;
-    }
-    return msg;
+    return encrypt_msg(msg, len);
 }
 
-/** 
- * rudimentary function to parse the hostname into the address and port pair
- * e.x. localhost:8080 --> (localhost, 8080)
- * this function does not check correctness of the address, but rather just 
- * cuts the hostname when it encounteres a ':'
- */
-struct Hostname* parse_hostname(struct Hostname* host)
+void parse_hostname(struct Hostname* host)
 {
     size_t addr_size = 64; /* reasonable number for address */
     if ( (host->address = calloc(addr_size, sizeof(char))) == NULL)
@@ -63,7 +51,7 @@ struct Hostname* parse_hostname(struct Hostname* host)
             continue;
         }
 
-        /* assumes that everything after the ':' is a digit */
+        /* everything after encountered ':' is the port */
         if(*c == ':') {
             port_encountered = true;
             host->port = atoi(c+1);
@@ -79,15 +67,9 @@ struct Hostname* parse_hostname(struct Hostname* host)
         free(host->address);
         host->address = "127.0.0.1";
     }
-
-    return host;
 }
 
-/** 
- * function opens the file and maps it into memory,
- * the file is mapped into memory to avoid the overhead of using system calls.
- */
-struct File* open_and_map_file(struct File* file) 
+void open_and_map_file(struct File* file) 
 {
     int fd;
     if ((fd = open(file->name, O_RDWR)) == -1) 
@@ -111,10 +93,6 @@ struct File* open_and_map_file(struct File* file)
     return file;
 }
 
-/**
- * opens the file provided by filename and reads it into struct File
- * kills the client if an error is encountered 
- */
 void client_send_file(struct Hostname host, char *filename) 
 {
     struct File file;
