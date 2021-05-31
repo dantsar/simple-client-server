@@ -1,41 +1,17 @@
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <getopt.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <client.h>
-
-/**
- * THIS IS NOT A VALID ENCRYPTION SCHEME! NEVER NEVER EVER EVER EVER DO THIS!!!
- * THIS IS BAD ON SO MANY LEVELS!!!!!!!!!!!!!!!!!!!!
- */
-static char secret_key = 'a';
-
-char* encrypt_msg(char msg[], int len)
-{
-    char temp;
-    for (int i = 0; i < len; i++) {
-        temp = msg[i] ^ secret_key;
-        msg[i] = temp;
-    }
-    return msg;
-}
-
-char* decrypt_msg(char msg[], int len)
-{
-    return encrypt_msg(msg, len);
-}
+#include <util.h>
 
 void parse_hostname(struct Hostname* host)
 {
@@ -69,30 +45,6 @@ void parse_hostname(struct Hostname* host)
     }
 }
 
-void open_and_map_file(struct File* file) 
-{
-    int fd;
-    if ((fd = open(file->name, O_RDWR)) == -1) 
-        ERR_MSG("error (client): can not open %s\ni%s\n", 
-                    file->name, 
-                    strerror(errno));
-
-    struct stat file_stat;
-    if(fstat(fd, &file_stat) == -1)
-        ERR_MSG("error (client): error accessing stat of file %s\n %s\n", 
-                                                    file->name,
-                                                    strerror(errno));
-
-    file->len = file_stat.st_size;
-    if ((file->bytes = mmap(NULL, file_stat.st_size, PROT_READ | PROT_WRITE, 
-                              MAP_PRIVATE, fd, 0)) == (void*)-1)
-        ERR_MSG("error (client): can not map %s into memory\n\t%s\n", 
-                    file->name, 
-                    strerror(errno));
-
-    return file;
-}
-
 void client_send_file(struct Hostname host, char *filename) 
 {
     struct File file;
@@ -106,7 +58,7 @@ void client_send_file(struct Hostname host, char *filename)
 
     encrypt_msg(file.bytes, file.len);
 
-    /* then send file over socket */
+    /* send file over socket */
 
 }
 
