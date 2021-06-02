@@ -1,7 +1,6 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <errno.h>
 #include <stdio.h>
 
 #define ERR_MSG(...)                        \
@@ -16,10 +15,20 @@ struct Hostname{
     int port;
 };
 
+/** 
+ * used for storing the contents of the file in a byte array
+ */
 struct File{
     char* name;
     unsigned int len;
     char* bytes;
+};
+
+/** 
+ * requested file to be transfered
+ */
+struct Request {
+    char* file;
 };
 
 /**
