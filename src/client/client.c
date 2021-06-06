@@ -1,22 +1,27 @@
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
+#include <netinet/in.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
+#include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
-#include <client.h>
+#include <client/client.h>
+#include <encrypt.h>
+#include <serialization.h>
 #include <util.h>
 
 void parse_hostname(struct Hostname* host)
 {
     size_t addr_size = 64; /* reasonable number for address */
-    if ( (host->address = calloc(addr_size, sizeof(char))) == NULL)
+    if ((host->address = calloc(addr_size, sizeof(char))) == NULL)
         ERR_MSG("error: malloc was not able ot allocate data");
 
     bool port_encountered = false;
@@ -28,7 +33,7 @@ void parse_hostname(struct Hostname* host)
         }
 
         /* everything after encountered ':' is the port */
-        if(*c == ':') {
+        if (*c == ':') {
             port_encountered = true;
             host->port = atoi(c+1);
             break;
@@ -52,14 +57,36 @@ void client_send_file(struct Hostname host, char *filename)
     open_and_map_file(&file);
 
     /* serialize the encrypted file */
-    for (int i = 0; i < file.len; i++) {
-        fprintf(stderr, "%d ", file.bytes[i]);
+    // for (int i = 0; i < file.len; i++) {
+    //     fprintf(stderr, "%d ", file.bytes[i]);
+    // }
+
+    // encrypt_msg(file.bytes, file.len);
+
+    /* create socket and send file */
+    int sfd;
+    struct sockaddr_in server;
+
+    if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+        ERR_MSG("error: can not open socket\n\t%s", strerror(errno));
+    
+    memset(&server, 0, sizeof(struct sockaddr_in));
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons(host.port);
+    server.sin_addr.s_addr = inet_addr(host.address);
+
+    if (connect(sfd,(struct sockaddr*)&server, sizeof(server)) == -1)
+        ERR_MSG("error: can not connect to server\n\t%s", strerror(errno));
+
+    int bytes_sent = 0;
+    errno = 0;
+    while ((bytes_sent += write(sfd, file.bytes, file.len)) < file.len) {
+        if (errno != 0) 
+            ERR_MSG("error: couldn't successfully send file\n\t%s",strerror(errno));
     }
-
-    encrypt_msg(file.bytes, file.len);
-
-    /* send file over socket */
-
+    if (munmap(file.bytes, file.len) == -1) 
+        ERR_MSG("error: could not unmap file\n\t%s\n",strerror(errno));
 }
 
 int main(int argc, char** argv)
@@ -116,9 +143,6 @@ int main(int argc, char** argv)
     }
 
     parse_hostname(&host);
-    // fprintf(stdout, "parsed host:\n %s\n %s ':' %d\n", host.sock_addr, 
-    //                                                    host.address,
-    //                                                    host.port);
 
     if (is_sending) {
         client_send_file(host, filename);

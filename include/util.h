@@ -22,6 +22,10 @@ struct File{
     char* bytes;
 };
 
+struct Request {
+    char *file;
+};
+
 /**
  * maps file.name into memory and initializes file.len and file.bytes
  * file is mapped into memory to avoid overhead of system calls 
