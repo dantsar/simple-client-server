@@ -26,6 +26,15 @@ struct Request {
     char *file;
 };
 
+
+/**
+ * parses host with provided host.sock_addr and initalizes the remaining fields
+ * with ip-address and port pair
+ * 
+ * @param host      only host.sock_addr is set and populates address and port
+ */
+void parse_hostname(struct Hostname* host);
+
 /**
  * maps file.name into memory and initializes file.len and file.bytes
  * file is mapped into memory to avoid overhead of system calls 
