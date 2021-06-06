@@ -26,7 +26,6 @@ struct Request {
     char *file;
 };
 
-
 /**
  * parses host with provided host.sock_addr and initalizes the remaining fields
  * with ip-address and port pair

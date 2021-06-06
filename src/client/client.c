@@ -73,9 +73,8 @@ int main(int argc, char** argv)
     };
 
     /* allow long and short arguments */
-    int opt_ind = 0;
     int opt;
-    while ((opt = getopt_long(argc, argv, "h:s:r:", long_options, &opt_ind)) != -1) {
+    while ((opt = getopt_long(argc, argv, "h:s:r:", long_options, NULL)) != -1) {
         switch (opt) {
         case 'h':
         case 'H':

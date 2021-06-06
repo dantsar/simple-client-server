@@ -41,7 +41,6 @@ void parse_hostname(struct Hostname* host)
     }
 }
 
-
 void open_and_map_file(struct File* file) 
 {
     int fd;
