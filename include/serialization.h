@@ -17,45 +17,46 @@ enum USER_DEF_SERIALIZATION
     SERIAL_REQUEST
 };
 
-
-/** 
- * 
- */
-char* serialize_bytes(char* bytes, unsigned int len);
-
-/** 
- * 
- */
-char* deserialize_bytes(char* bytes, unsigned int len);
-
 /**
 
  */
-char* serialize_uint32(unsigned int uint32);
+char* serialize_uint32(unsigned int ui32, char *buf_head,
+                       char *work_head, int *size);
 
 /**
  * 
  */
-char* deserialize_uint32(unsigned int uint32);
+unsigned int deserialize_uint32(char *work_head);
 
-/**
- * 
- */
-char* serialize_File(struct File* file);
+// /** 
+//  * 
+//  */
+// char* serialize_bytes(char* bytes, unsigned int len);
 
-/**
- * 
- */
-char* deserialize_File(struct File* file);
+// /** 
+//  * 
+//  */
+// char* deserialize_bytes(char* bytes, unsigned int len);
 
-/**
- * 
- */
-char* serialize_Request(struct Request* req);
 
-/**
- * 
- */
-char* deserialize_Request(struct Request* req);
+// /**
+//  * 
+//  */
+// char* serialize_File(struct File* file);
+
+// /**
+//  * 
+//  */
+// char* deserialize_File(struct File* file);
+
+// /**
+//  * 
+//  */
+// char* serialize_Request(struct Request* req);
+
+// /**
+//  * 
+//  */
+// char* deserialize_Request(struct Request* req);
 
 #endif

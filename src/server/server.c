@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <server/server.h>
 #include <util.h>
@@ -37,7 +38,7 @@ int main(int argc, char** argv)
         {"hostname",    required_argument, NULL, 'H'},
     };
 
-    struct Hostname host = { .address = NULL, .port = 0, .sock_addr = NULL };
+    struct Hostname host = {.address = NULL, .port = 0, .sock_addr = NULL};
 
     int opt;
     while((opt = getopt_long(argc, argv, "h:", long_options, NULL)) != -1) {
@@ -55,9 +56,35 @@ int main(int argc, char** argv)
         ERR_MSG("server: please specify the socket address\n");
 
     parse_hostname(&host);
-    
     int sfd = server_set_socket(host);
 
+    struct sockaddr_in client;
+    socklen_t len = sizeof(client);
+    char buff[16] = {0}; 
 
+    FILE *fp;
+    fp = fopen("TEST_FILE", "wb");
+
+    int afd;
+    while (1) {
+        if((afd = accept(sfd, (struct sockaddr*)&client, &len)) == -1)
+            ERR_MSG("server: cannot accept connection\n\t%s\n", strerror(errno));
+
+        int bytes;
+        errno = 0;
+        while ((bytes = read(afd, buff, sizeof(buff))) != 0) {
+            if (bytes == -1)
+                ERR_MSG("server: error reading file\n\t%s\n", strerror(errno));
+
+            fwrite(buff, bytes, 1, fp);
+            if (errno != 0)
+                ERR_MSG("server: cannot write to file\n\t%s\n", strerror(errno));
+
+            memset(buff, 0, bytes);
+        }
+        fflush(fp);
+    }
+
+    fclose(fp);
     return 1;
 }

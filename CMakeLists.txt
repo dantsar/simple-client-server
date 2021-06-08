@@ -4,6 +4,9 @@ project("simple-client-server")
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_C_STANDARD 11)
 
+# options for testing 
+option(U_TEST "U_TEST" OFF)
+
 add_compile_options(-ggdb -Wall -pedantic)
 
 include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
@@ -19,3 +22,8 @@ file(GLOB SERVER_SOURCES ${CMAKE_SOURCE_DIR}/src/server/*.c)
 
 add_executable(client ${SHARED_SOURCES} ${CLIENT_SOURCES})
 add_executable(server ${SHARED_SOURCES} ${SERVER_SOURCES})
+
+if(${U_TEST})
+    add_executable(serialize_test ${CMAKE_SOURCE_DIR}/src/serialization.c ${CMAKE_SOURCE_DIR}/src/test/serialize_test.c)
+endif()
+
