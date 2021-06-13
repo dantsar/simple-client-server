@@ -4,7 +4,14 @@
 #include <errno.h>
 #include <stdio.h>
 
+/* TO DO: Replace ERR_MSG w/ ERR_N_DIE */
 #define ERR_MSG(...)                        \
+    do {                                    \
+        fprintf(stderr, __VA_ARGS__);       \
+        exit(-1);                           \
+    } while (0); 
+
+#define ERR_N_DIE(...)                        \
     do {                                    \
         fprintf(stderr, __VA_ARGS__);       \
         exit(-1);                           \
@@ -24,6 +31,12 @@ struct File{
 
 struct Request {
     char *file;
+};
+
+struct Serial_Buffer {
+    char *buff;
+    char *head;
+    int  size;
 };
 
 /**
